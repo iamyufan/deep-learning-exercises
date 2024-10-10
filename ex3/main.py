@@ -47,6 +47,8 @@ def create_model(model_name):
 
 
 def main():
+    print(f"Training {model_name.upper()} on FashionMNIST dataset")
+    print("===============================================")
     data_module = FashionMNISTDataModule(batch_size=batch_size, image_size=image_size)
     data_module.setup()
     model = create_model(model_name)
