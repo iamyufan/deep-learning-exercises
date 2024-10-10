@@ -161,6 +161,7 @@ class DCGAN(nn.Module):
             The beta1 parameter for the Adam optimizer.
         """
         super(DCGAN, self).__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Configuration for the model
         self.latent_dim = latent_dim
@@ -168,11 +169,12 @@ class DCGAN(nn.Module):
         self.img_channels = img_channels
 
         # Generator and Discriminator
-        self.netG = Generator(self.latent_dim, self.num_classes, self.img_channels)
-        self.netD = Discriminator(self.num_classes, self.img_channels)
+        self.netG = Generator(self.latent_dim, self.num_classes, self.img_channels).to(
+            self.device
+        )
+        self.netD = Discriminator(self.num_classes, self.img_channels).to(self.device)
 
         # Training configurations
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.learning_rate = learning_rate
         self.beta1 = beta1
 
