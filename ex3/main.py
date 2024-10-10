@@ -1,3 +1,4 @@
+import os
 import torch
 from torchvision.utils import save_image, make_grid
 import matplotlib.pyplot as plt
@@ -39,6 +40,10 @@ def main():
     # Lists to store losses
     G_losses = []
     D_losses = []
+    
+    # Make output and checkpoints directories if they don't exist
+    os.makedirs("output", exist_ok=True)
+    os.makedirs("checkpoints/dcgan", exist_ok=True)
 
     for epoch in range(epochs):
         epoch_G_losses = []
