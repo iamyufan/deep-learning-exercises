@@ -3,14 +3,13 @@ import time
 import torch
 from torchvision.utils import save_image, make_grid
 import matplotlib.pyplot as plt
+import argparse
 
 from datasets.fashion_mnist import FashionMNISTDataModule
 from models import DCGAN, WGAN
 
 
 # Hyperparameters
-model_name = "dcgan"  # Choose between "dcgan" and "wgan"
-
 batch_size = 128
 image_size = 64  # Resize images to 64x64 as per DCGAN requirements
 latent_dim = 100  # Latent vector size (generator input)
@@ -46,7 +45,8 @@ def create_model(model_name):
     return model
 
 
-def main():
+def main(args):
+    model_name = args.model_name
     print(f"Training {model_name.upper()} on FashionMNIST dataset")
     print("===============================================")
     data_module = FashionMNISTDataModule(batch_size=batch_size, image_size=image_size)
@@ -118,9 +118,19 @@ def main():
 
 
 if __name__ == "__main__":
+    # Add model_name as an argument
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model_name",
+        type=str,
+        default="dcgan",
+        help="Choose between 'dcgan' and 'wgan'",
+    )
+    args = parser.parse_args()
+
     # Record the time taken for everything
     start_time = time.time()
-    main()
+    main(args)
     # Print the time taken in minutes plus seconds
     elapsed_time = time.time() - start_time
     elapsed_mins = int(elapsed_time // 60)
