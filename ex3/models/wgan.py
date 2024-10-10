@@ -134,14 +134,15 @@ class Discriminator(nn.Module):
         return self.main(img)
 
 
-class DCGAN:
+class WGAN:
     def __init__(
         self,
         latent_dim=100,
         num_classes=10,
         img_channels=1,
         learning_rate=0.0002,
-        beta1=0.2,
+        n_critic=5,
+        weight_clip_value=0.01,
     ):
         """
         The DCGAN class that combines the Generator and Discriminator.
@@ -159,14 +160,20 @@ class DCGAN:
             The learning rate for the optimizer.
         beta1 : float
             The beta1 parameter for the Adam optimizer.
+        n_critic : int
+            The number of critic iterations per generator iteration.
+        weight_clip_value : float
+            The value to clip the weights of the discriminator.
         """
-        super(DCGAN, self).__init__()
+        super(WGAN, self).__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Configuration for the model
         self.latent_dim = latent_dim
         self.num_classes = num_classes
         self.img_channels = img_channels
+        self.n_critic = n_critic
+        self.weight_clip_value = weight_clip_value
 
         # Generator and Discriminator
         self.netG = Generator(self.latent_dim, self.num_classes, self.img_channels).to(
@@ -176,27 +183,20 @@ class DCGAN:
 
         # Training configurations
         self.learning_rate = learning_rate
-        self.beta1 = beta1
-
-    @property
-    def criterion(self):
-        if not hasattr(self, "_criterion"):
-            self._criterion = nn.BCELoss()
-        return self._criterion
 
     @property
     def optimizerG(self):
         if not hasattr(self, "_optimizerG"):
-            self._optimizerG = optim.Adam(
-                self.netG.parameters(), lr=self.learning_rate, betas=(self.beta1, 0.999)
+            self._optimizerG = optim.RMSprop(
+                self.netG.parameters(), lr=self.learning_rate
             )
         return self._optimizerG
 
     @property
     def optimizerD(self):
         if not hasattr(self, "_optimizerD"):
-            self._optimizerD = optim.Adam(
-                self.netD.parameters(), lr=self.learning_rate, betas=(self.beta1, 0.999)
+            self._optimizerD = optim.RMSprop(
+                self.netD.parameters(), lr=self.learning_rate
             )
         return self._optimizerD
 
@@ -251,34 +251,39 @@ class DCGAN:
         # ---------------------
         #  Train Discriminator
         # ---------------------
-        self.netD.zero_grad()
+        for _ in range(self.n_critic):
+            self.netD.zero_grad()
 
-        # Train on real images
-        label = torch.full((batch_size,), 1.0, dtype=torch.float).to(
-            self.device
-        )  # All ones label for real images
-        output = self.netD(real_images, real_labels).view(-1)
-        errD_real = self.criterion(output, label)
-        errD_real.backward()
+            # Train on real images
+            output_real = self.netD(real_images, real_labels).view(-1)
+            errD_real = -torch.mean(output_real)
 
-        # Train on fake images
-        noise = torch.randn(batch_size, self.latent_dim, 1, 1).to(self.device)
-        fake_labels = torch.randint(0, self.num_classes, (batch_size,)).to(self.device)
-        fake_images = self.netG(noise, fake_labels)
-        label.fill_(0.0)  # All zeros label for fake images
-        output = self.netD(fake_images.detach(), fake_labels).view(-1)
-        errD_fake = self.criterion(output, label)
-        errD_fake.backward()
+            # Train on fake images
+            noise = torch.randn(batch_size, self.latent_dim, 1, 1).to(self.device)
+            fake_labels = torch.randint(0, self.num_classes, (batch_size,)).to(
+                self.device
+            )
+            fake_images = self.netG(noise, fake_labels)
+            output_fake = self.netD(fake_images.detach(), fake_labels).view(-1)
+            errD_fake = torch.mean(output_fake)
 
-        errD = errD_real + errD_fake
-        self.optimizerD.step()
+            # Total discriminator loss
+            errD = errD_real + errD_fake
+            errD.backward()
+            self.optimizerD.step()
 
-        ## Train Generator ##
+            # Weight clipping
+            for p in self.netD.parameters():
+                p.data.clamp_(-self.weight_clip_value, self.weight_clip_value)
+
+        # ---------------------
+        #  Train Generator
+        # ---------------------
         self.netG.zero_grad()
-        label.fill_(1.0)  # The generator wants to trick the discriminator
 
+        # Generator wants to maximize the discriminator's output for fake images
         output = self.netD(fake_images, fake_labels).view(-1)
-        errG = self.criterion(output, label)
+        errG = -torch.mean(output)
         errG.backward()
         self.optimizerG.step()
 
