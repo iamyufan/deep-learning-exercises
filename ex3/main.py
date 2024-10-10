@@ -18,6 +18,7 @@ epochs = 20  # Number of training epochs
 
 def main():
     data_module = FashionMNISTDataModule(batch_size=batch_size)
+    data_module.setup()
     model = DCGAN(
         latent_dim=latent_dim,
         num_classes=num_classes,
@@ -25,6 +26,7 @@ def main():
         learning_rate=learning_rate,
         beta1=beta1,
     )
+    print(f"Using {model.device} for training")
 
     # Train the model
     train_loader = data_module.train_dataloader()
