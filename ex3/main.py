@@ -121,5 +121,8 @@ if __name__ == "__main__":
     # Record the time taken for everything
     start_time = time.time()
     main()
-    # Print the time taken in minutes
-    print(f"Time taken: {(time.time() - start_time) / 60:.2f} minutes")
+    # Print the time taken in minutes plus seconds
+    elapsed_time = time.time() - start_time
+    elapsed_mins = int(elapsed_time // 60)
+    elapsed_secs = int(elapsed_time % 60)
+    print(f"Training took {elapsed_mins} minutes and {elapsed_secs} seconds.")
