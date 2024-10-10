@@ -48,8 +48,8 @@ def main():
             errG, errD = model.training_step(batch, i)
             epoch_G_losses.append(errG.item())
             epoch_D_losses.append(errD.item())
-        G_losses.append(*epoch_G_losses)
-        D_losses.append(*epoch_D_losses)
+        G_losses += epoch_G_losses
+        D_losses += epoch_D_losses
         print(
             f"Epoch [{epoch+1}/{epochs}], G_loss: {sum(epoch_G_losses)/len(epoch_G_losses)}, D_loss: {sum(epoch_D_losses)/len(epoch_D_losses)}"
         )
