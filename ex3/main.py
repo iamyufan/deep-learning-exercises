@@ -40,7 +40,7 @@ def main():
     # Lists to store losses
     G_losses = []
     D_losses = []
-    
+
     # Make output and checkpoints directories if they don't exist
     os.makedirs("output", exist_ok=True)
     os.makedirs("checkpoints/dcgan", exist_ok=True)
@@ -66,7 +66,9 @@ def main():
         save_image(fake_images, f"output/dcgan_images_epoch_{epoch+1}.png")
 
         # Save model checkpoints for each epoch
-        model.netG.save_checkpoint(f"checkpoints/dcgan/netG_epoch_{epoch+1}.pth")
+        torch.save(
+            model.netG.state_dict(), f"checkpoints/dcgan/netG_epoch_{epoch+1}.pth"
+        )
 
     # Save losses plot as two subplots
     plt.figure(figsize=(10, 5))
