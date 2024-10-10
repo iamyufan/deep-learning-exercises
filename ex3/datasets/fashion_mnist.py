@@ -9,11 +9,12 @@ class FashionMNISTDataModule:
     Follows the PyTorch Lightning DataModule structure.
     """
 
-    def __init__(self, batch_size=64):
+    def __init__(self, batch_size=64, image_size=64):
         super().__init__()
         self.batch_size = batch_size
         self.transform = transforms.Compose(
             [
+                transforms.Resize(image_size),
                 transforms.ToTensor(),
                 transforms.Normalize([0.5], [0.5]),  # Normalize images between -1 and 1
             ]

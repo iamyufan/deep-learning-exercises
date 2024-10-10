@@ -8,6 +8,7 @@ from models.dcgan import DCGAN
 
 # Hyperparameters
 batch_size = 128
+image_size = 64  # Resize images to 64x64 as per DCGAN requirements
 latent_dim = 100  # Latent vector size (generator input)
 img_channels = 1  # Number of image channels (FashionMNIST is grayscale)
 num_classes = 10  # FashionMNIST has 10 classes
@@ -17,7 +18,7 @@ epochs = 20  # Number of training epochs
 
 
 def main():
-    data_module = FashionMNISTDataModule(batch_size=batch_size)
+    data_module = FashionMNISTDataModule(batch_size=batch_size, image_size=image_size)
     data_module.setup()
     model = DCGAN(
         latent_dim=latent_dim,
