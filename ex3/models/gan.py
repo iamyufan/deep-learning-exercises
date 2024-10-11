@@ -39,9 +39,15 @@ class GAN:
         """
         print(f"Training the model on {self.device}")
 
+        G_losses = []
+        D_losses = []
+
         for epoch in range(num_epochs):
             for i, batch in enumerate(dataloader):
                 errG, errD = self.training_step(batch, i)
+
+                G_losses.append(errG.item())
+                D_losses.append(errD.item())
 
                 if i % 100 == 0:
                     print(
@@ -57,6 +63,8 @@ class GAN:
                 f"{output_dir}_{epoch}.png",
                 normalize=True,
             )
+
+        return G_losses, D_losses
 
     def generate_images_by_label(self, num_images: int, label: int) -> torch.Tensor:
         """
