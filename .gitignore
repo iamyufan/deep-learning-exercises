@@ -1,6 +1,2 @@
 ex3/data/*
-
-# Ignore any __pycache__ directory
 __pycache__/
-
-

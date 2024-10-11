@@ -38,7 +38,7 @@ class GAN:
             The number of epochs to train the model.
         """
         print(f"Training the model on {self.device}")
-        
+
         for epoch in range(num_epochs):
             for i, batch in enumerate(dataloader):
                 errG, errD = self.training_step(batch, i)
@@ -50,7 +50,10 @@ class GAN:
                     )
 
             torchvision.utils.save_image(
-                self.netG(torch.randn(64, self.latent_dim, 1, 1).to(self.device)),
+                self.netG(
+                    torch.randn(64, self.latent_dim, 1, 1).to(self.device),
+                    torch.randint(0, self.num_classes, (64,)).to(self.device),
+                ),
                 f"{output_dir}_{epoch}.png",
                 normalize=True,
             )
