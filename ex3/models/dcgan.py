@@ -18,8 +18,8 @@ class DCGAN(GAN):
         beta1=0.2,
         num_layers_G=4,
         num_layers_D=4,
-        nonlinearity_G="relu",
-        nonlinearity_D="leakyrelu",
+        nonlinearity_G="ReLU",
+        nonlinearity_D="LeakyReLU",
     ):
         """
         The DCGAN class that combines the Generator and Discriminator.
@@ -124,13 +124,13 @@ class DCGAN(GAN):
         self.netD.zero_grad()
 
         # Real images
-        output_real = self.netD(real_images, class_labels).view(-1, 1)
+        output_real = self.netD(real_images, class_labels).view(-1)
         errD_real = self.criterion(output_real, real_labels)
 
         # Fake images
         noise = torch.randn(batch_size, self.latent_dim, 1, 1, device=self.device)
         fake_images = self.netG(noise, class_labels)
-        output_fake = self.netD(fake_images.detach(), class_labels).view(-1, 1)
+        output_fake = self.netD(fake_images.detach(), class_labels).view(-1)
         errD_fake = self.criterion(output_fake, fake_labels)
 
         # Total Discriminator loss
@@ -142,7 +142,7 @@ class DCGAN(GAN):
         #  Train Generator
         # ---------------------
         self.netG.zero_grad()
-        output_fake = self.netD(fake_images, class_labels).view(-1, 1)
+        output_fake = self.netD(fake_images, class_labels).view(-1)
         errG = self.criterion(output_fake, real_labels)
         errG.backward()
         self.optimizerG.step()
