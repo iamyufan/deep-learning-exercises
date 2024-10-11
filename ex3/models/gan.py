@@ -76,7 +76,7 @@ class GAN:
                     torch.randn(64, self.latent_dim, 1, 1).to(self.device),
                     torch.randint(0, self.num_classes, (64,)).to(self.device),
                 ),
-                f"{output_dir}_{epoch}.png",
+                f"{output_dir}/{epoch}.png",
                 normalize=True,
             )
 
