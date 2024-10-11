@@ -66,7 +66,7 @@ class GAN:
 
                 if i % 100 == 0:
                     print(
-                        f"Epoch [{epoch}/{num_epochs}] Batch [{i}/{len(dataloader)}]"
+                        f"Epoch [{epoch+1}/{num_epochs}] Batch [{i}/{len(dataloader)}]"
                         f"\tLoss_D: {errD.item():.4f} \t Loss_G: {errG.item():.4f}"
                     )
 
@@ -91,7 +91,7 @@ class GAN:
             )
 
         # Visualize the losses in two subplots
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=(15, 5))
         plt.subplot(1, 2, 1)
         plt.plot(G_losses, label="Generator Loss")
         plt.xlabel("Iteration")
