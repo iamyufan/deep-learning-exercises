@@ -1,4 +1,3 @@
-# Create a GAN model interface
 from typing import Tuple
 import torchvision
 import torch

@@ -2,7 +2,6 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torchvision
 
 from .components import Generator, Discriminator
 from .gan import GAN

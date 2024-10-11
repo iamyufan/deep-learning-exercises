@@ -1,8 +1,6 @@
 from typing import Tuple
 import torch
-import torch.nn as nn
 import torch.optim as optim
-import torchvision
 
 from .components import Generator, Critic
 from .gan import GAN
