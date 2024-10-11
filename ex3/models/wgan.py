@@ -14,7 +14,7 @@ class WGAN(GAN):
         latent_dim=100,
         num_classes=10,
         img_channels=1,
-        learning_rate=0.0002,
+        learning_rate=0.00005,
         n_critic=5,
         weight_clip_value=0.01,
         num_layers_G=4,
@@ -114,17 +114,13 @@ class WGAN(GAN):
         class_labels = class_labels.to(self.device)
         batch_size = real_images.size(0)
 
-        # Labels for real and fake data
-        real_labels = torch.ones(batch_size, device=self.device)
-        fake_labels = torch.zeros(batch_size, device=self.device)
-
         # ---------------------
         #  Train Critic
         # ---------------------
         for _ in range(self.n_critic):
             # Generate random noise
             noise = torch.randn(batch_size, self.latent_dim, 1, 1, device=self.device)
-            fake_images = self.netG(noise, class_labels)
+            fake_images = self.netG(noise, class_labels).detach()
 
             # Compute critic loss
             C_real = self.netD(real_images, class_labels).mean()

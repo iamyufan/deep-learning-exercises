@@ -455,11 +455,10 @@ class Critic(nn.Module):
         elif num_layers == 8:
             main = self._get_8_layer()
 
-        # Output layer: produces probability of input image being real
+        # Output layer: no need for Sigmoid as WGAN uses Wasserstein distance
         main.append(
             nn.Conv2d(512, 1, 4, 1, 0, bias=False),
         )
-        main.append(nn.Sigmoid())
         self.main = nn.Sequential(*main)
 
     def _get_4_layer(self) -> nn.Sequential:
