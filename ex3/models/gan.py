@@ -126,7 +126,7 @@ class GAN:
         labels = torch.full((num_images,), label, dtype=torch.long).to(self.device)
 
         with torch.no_grad():
-            fake_images = self.forward(noise, labels).detach().cpu()
+            fake_images = self.netG(noise, labels).detach().cpu()
 
         grid = torchvision.utils.make_grid(fake_images, nrow=10, normalize=True)
         return grid
