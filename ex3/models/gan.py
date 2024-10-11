@@ -37,6 +37,8 @@ class GAN:
         num_epochs : int
             The number of epochs to train the model.
         """
+        print(f"Training the model on {self.device}")
+        
         for epoch in range(num_epochs):
             for i, batch in enumerate(dataloader):
                 errG, errD = self.training_step(batch, i)
