@@ -2,6 +2,7 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.autograd import grad
 import torchvision
 
 
@@ -13,7 +14,7 @@ class Generator(nn.Module):
         img_channels=1,
     ):
         """
-        The Generator class for WGAN.
+        The Generator class for DCGAN.
 
         Parameters
         ----------
@@ -71,14 +72,14 @@ class Generator(nn.Module):
         return self.main(z)
 
 
-class Discriminator(nn.Module):
+class Critic(nn.Module):
     def __init__(
         self,
         num_classes=10,
         img_channels=1,
     ):
         """
-        The Discriminator class for WGAN.
+        The Critic class for WGAN-GP.
 
         Parameters
         ----------
@@ -87,54 +88,38 @@ class Discriminator(nn.Module):
         img_channels : int
             The number of channels in the input images.
         """
-        super(Discriminator, self).__init__()
+        super(Critic, self).__init__()
         self.label_emb = nn.Embedding(num_classes, num_classes)
 
         self.main = nn.Sequential(
             # Input is the image + class label, going into a conv layer
             nn.Conv2d(img_channels + num_classes, 64, 4, 2, 1, bias=False),
+            nn.LayerNorm([64, 32, 32]),
             nn.LeakyReLU(0.2, inplace=True),
             # Layer 2
             nn.Conv2d(64, 128, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(128),
+            nn.LayerNorm([128, 16, 16]),
             nn.LeakyReLU(0.2, inplace=True),
             # Layer 3
             nn.Conv2d(128, 256, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(256),
+            nn.LayerNorm([256, 8, 8]),
             nn.LeakyReLU(0.2, inplace=True),
             # Layer 4
             nn.Conv2d(256, 512, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(512),
+            nn.LayerNorm([512, 4, 4]),
             nn.LeakyReLU(0.2, inplace=True),
             # Output layer
             nn.Conv2d(512, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid(),  # Output probability between 0 and 1
         )
 
     def forward(self, img, labels) -> torch.Tensor:
-        """
-        Forward pass of the Discriminator to classify real/fake images.
-
-        Parameters
-        ----------
-        img : torch.Tensor (batch_size, img_channels, 64, 64)
-            The input images to be classified.
-        labels : torch.Tensor (batch_size)
-            The class labels for the images.
-
-        Returns
-        -------
-        torch.Tensor (batch_size, 1, 1, 1)
-            The probability of the input images being real.
-        """
-        # Concatenate image and class label embedding
         label_embedding = self.label_emb(labels).unsqueeze(2).unsqueeze(3)
         label_embedding = label_embedding.expand(-1, -1, img.size(2), img.size(3))
         img = torch.cat([img, label_embedding], dim=1)
-        return self.main(img)
+        return self.main(img).view(-1)
 
 
-class WGAN:
+class WGAN_GP:
     def __init__(
         self,
         latent_dim=100,
@@ -145,7 +130,7 @@ class WGAN:
         weight_clip_value=0.01,
     ):
         """
-        The WGAN class that combines the Generator and Discriminator.
+        The DCGAN class that combines the Generator and Discriminator.
         Follows the PyTorch Lightning Module structure that wraps the training loop.
 
         Parameters
@@ -165,7 +150,7 @@ class WGAN:
         weight_clip_value : float
             The value to clip the weights of the discriminator.
         """
-        super(WGAN, self).__init__()
+        super(WGAN_GP, self).__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Configuration for the model
@@ -179,7 +164,7 @@ class WGAN:
         self.netG = Generator(self.latent_dim, self.num_classes, self.img_channels).to(
             self.device
         )
-        self.netD = Discriminator(self.num_classes, self.img_channels).to(self.device)
+        self.netC = Critic(self.num_classes, self.img_channels).to(self.device)
 
         # Training configurations
         self.learning_rate = learning_rate
@@ -187,18 +172,37 @@ class WGAN:
     @property
     def optimizerG(self):
         if not hasattr(self, "_optimizerG"):
-            self._optimizerG = optim.RMSprop(
-                self.netG.parameters(), lr=self.learning_rate
+            self._optimizerG = optim.Adam(
+                self.netG.parameters(), lr=self.learning_rate, betas=(0.0, 0.9)
             )
         return self._optimizerG
 
     @property
-    def optimizerD(self):
-        if not hasattr(self, "_optimizerD"):
-            self._optimizerD = optim.RMSprop(
-                self.netD.parameters(), lr=self.learning_rate
+    def optimizerC(self):
+        if not hasattr(self, "_optimizerC"):
+            self._optimizerC = optim.Adam(
+                self.netC.parameters(), lr=self.learning_rate, betas=(0.0, 0.9)
             )
-        return self._optimizerD
+        return self._optimizerC
+
+    def gradient_penalty(self, real_data, fake_data, labels):
+        batch_size = real_data.size(0)
+        alpha = torch.rand(batch_size, 1, 1, 1).to(self.device)
+        interpolates = (alpha * real_data + ((1 - alpha) * fake_data)).requires_grad_(
+            True
+        )
+        d_interpolates = self.netC(interpolates, labels)
+        gradients = grad(
+            outputs=d_interpolates,
+            inputs=interpolates,
+            grad_outputs=torch.ones(d_interpolates.size()).to(self.device),
+            create_graph=True,
+            retain_graph=True,
+            only_inputs=True,
+        )[0]
+        gradients = gradients.view(gradients.size(0), -1)
+        gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * self.lambda_gp
+        return gradient_penalty
 
     def forward(self, noise: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         """
@@ -255,6 +259,22 @@ class WGAN:
             self.netD.zero_grad()
 
             # Train on real images
+            d_real = self.netC(real_images, real_labels).mean()
+            
+            # Train on fake images
+            noise = torch.randn(batch_size, self.latent_dim, 1, 1).to(self.device)
+            fake_labels = torch.randint(0, self.num_classes, (batch_size,)).to(self.device)
+            fake_images = self.netG(noise, fake_labels)
+            d_fake = self.netC(fake_images.detach(), fake_labels).mean()
+            
+            # Gradient penalty
+            gp = self.gradient_penalty(real_images, fake_images, real_labels)
+            
+            # Critic loss
+            errC = -d_real + d_fake + gp
+            errC.backward()
+            self.optimizerC.step()
+            
             output_real = self.netD(real_images, real_labels).view(-1)
             errD_real = -torch.mean(output_real)
 
