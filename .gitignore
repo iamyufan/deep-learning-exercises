@@ -1,2 +1,5 @@
-ex3/data/*
 __pycache__/
+
+ex3/data/*
+ex3/checkpoints/*
+ex3/output/*

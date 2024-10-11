@@ -2,12 +2,19 @@
 from typing import Tuple
 import torchvision
 import torch
+import os
+import matplotlib.pyplot as plt
 
 
 class GAN:
     def __init__(self, latent_dim=100, num_classes=10, img_channels=1):
         super().__init__()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
 
         # Configuration for the model
         self.latent_dim = latent_dim
@@ -26,6 +33,7 @@ class GAN:
         dataloader: torch.utils.data.DataLoader,
         num_epochs=100,
         output_dir="output",
+        checkpoint_dir="checkpoints",
     ):
         """
         Train the model on the given dataloader for the specified number of epochs.
@@ -38,6 +46,13 @@ class GAN:
             The number of epochs to train the model.
         """
         print(f"Training the model on {self.device}")
+
+        # Make sure the output and checkpoint directories exist
+        # If not, create them
+        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        print(f"Saving output images to {output_dir}")
+        print(f"Saving model checkpoints to {checkpoint_dir}")
 
         G_losses = []
         D_losses = []
@@ -55,6 +70,7 @@ class GAN:
                         f"\tLoss_D: {errD.item():.4f} \t Loss_G: {errG.item():.4f}"
                     )
 
+            # Save a grid of generated images after each epoch
             torchvision.utils.save_image(
                 self.netG(
                     torch.randn(64, self.latent_dim, 1, 1).to(self.device),
@@ -63,6 +79,30 @@ class GAN:
                 f"{output_dir}_{epoch}.png",
                 normalize=True,
             )
+
+            # Save model checkpoints for each epoch
+            torch.save(
+                self.netG.state_dict(),
+                f"{checkpoint_dir}/netG_epoch_{epoch}.pth",
+            )
+            torch.save(
+                self.netD.state_dict(),
+                f"{checkpoint_dir}/netD_epoch_{epoch}.pth",
+            )
+
+        # Visualize the losses in two subplots
+        plt.figure(figsize=(10, 5))
+        plt.subplot(1, 2, 1)
+        plt.plot(G_losses, label="Generator Loss")
+        plt.xlabel("Iteration")
+        plt.ylabel("Loss")
+        plt.legend()
+        plt.subplot(1, 2, 2)
+        plt.plot(D_losses, label="Discriminator Loss")
+        plt.xlabel("Iteration")
+        plt.ylabel("Loss")
+        plt.legend()
+        plt.savefig(f"{output_dir}/losses.png")
 
         return G_losses, D_losses
 
