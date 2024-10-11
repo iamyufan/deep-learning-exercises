@@ -139,10 +139,12 @@ class WGAN(GAN):
         # ---------------------
         #  Train Generator
         # ---------------------
-        self.netG.zero_grad()
         noise = torch.randn(batch_size, self.latent_dim, 1, 1, device=self.device)
         fake_images = self.netG(noise, class_labels)
-        errG = -self.netD(fake_images, class_labels).mean()
+        G_loss = -self.netD(fake_images, class_labels).mean()
+        
+        self.optimizerG.zero_grad()
+        G_loss.backward()
         self.optimizerG.step()
 
-        return errG, C_loss
+        return G_loss, C_loss
