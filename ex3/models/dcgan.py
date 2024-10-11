@@ -115,8 +115,8 @@ class DCGAN(GAN):
         batch_size = real_images.size(0)
 
         # Labels for real and fake data
-        real_labels = torch.ones(batch_size, 1, 1, 1, device=self.device)
-        fake_labels = torch.zeros(batch_size, 1, 1, 1, device=self.device)
+        real_labels = torch.ones(batch_size, device=self.device)
+        fake_labels = torch.zeros(batch_size, device=self.device)
 
         # ---------------------
         #  Train Discriminator
