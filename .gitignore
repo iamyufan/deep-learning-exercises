@@ -1,5 +1,4 @@
 __pycache__/
 
-ex3/data/*
-ex3/checkpoints/*
-ex3/output/*
+ex3/data/FashionMNIST/
+# ex3/checkpoints/*

@@ -1,0 +1,1 @@
+Using the Fashion MNIST dataset from torchvision.datasets: https://pytorch.org/vision/stable/generated/torchvision.datasets.FashionMNIST.html

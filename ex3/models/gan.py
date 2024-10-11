@@ -128,5 +128,5 @@ class GAN:
         with torch.no_grad():
             fake_images = self.netG(noise, labels).detach().cpu()
 
-        grid = torchvision.utils.make_grid(fake_images, nrow=10, normalize=True)
+        grid = torchvision.utils.make_grid(fake_images, nrow=5, normalize=True)
         return grid
